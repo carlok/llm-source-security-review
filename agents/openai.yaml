@@ -1,0 +1,4 @@
+interface:
+  display_name: "LLM Source Security Review"
+  short_description: "Run defensive source security reviews with LLM agents."
+  default_prompt: "Use $llm-source-security-review to run a defensive source-code security review of the current repository."
