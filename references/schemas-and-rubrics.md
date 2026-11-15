@@ -19,11 +19,31 @@ Append one JSON object per candidate finding:
   "impact": "security impact if exploitable",
   "preconditions": ["required condition"],
   "existing_mitigations_checked": ["validation/auth/type checks/etc."],
+  "cwe_ids": ["CWE-89"],
+  "owasp_category": "A03:2021-Injection",
+  "asvs_refs": ["V5.3.4"],
+  "severity": "critical|high|medium|low|informational",
   "poc_path": "SECURITY_REVIEW/POCS/... or null",
   "reproduction_steps": ["local-only steps if any"],
   "confidence": "low|medium|high",
-  "reasoning_summary": "brief evidence summary, no hidden reasoning"
+  "confidence_score": 0.0,
+  "fingerprint": "optional; computed by scripts if omitted",
+  "reasoning_summary": "brief evidence summary with file/line cites, no hidden reasoning"
 }
+```
+
+### Field notes
+
+- **`cwe_ids`**: Use `CWE-###` strings. Prefer [CWE Top 25](https://cwe.mitre.org/top25/) and class-specific children (for example CWE-89 for SQL injection).
+- **`owasp_category`**: Optional OWASP Top 10:2021 label for reporting.
+- **`confidence_score`**: Numeric 0.0–1.0; discovery may use 0.3–0.6, verification should raise or lower based on evidence.
+- **`source_to_sink`**: Required narrative of source → propagation → sink (Semgrep-style taint summary).
+- **`fingerprint`**: Optional dedup key; `scripts/finding_tools.py` can derive `finding_fingerprint()` from category, locations, and flow.
+
+Validate JSONL with:
+
+```bash
+python3 /path/to/llm-source-security-review/scripts/validate_findings.py SECURITY_REVIEW
 ```
 
 ## VERIFIED.jsonl Schema
@@ -40,9 +60,12 @@ Append one JSON object per verification attempt:
   "mitigations_found": ["auth/validation/sandbox/etc."],
   "poc_result": "reproduced|failed|not_available|not_run",
   "reproduction_steps": ["local-only steps"],
+  "confidence_score": 0.0,
   "notes": "brief summary"
 }
 ```
+
+`true_positive` and `probable_true_positive` verdicts require a non-empty `evidence` list (enforced by `validate_findings.py`).
 
 ## Verification Verdicts
 
@@ -82,6 +105,16 @@ Suggested defaults:
 - Informational: hardening issue without demonstrated exploitability.
 
 Adjust thresholds to the project.
+
+## SARIF export
+
+After verification, export actionable results for GitHub code scanning (SARIF 2.1.0):
+
+```bash
+python3 /path/to/llm-source-security-review/scripts/export_sarif.py SECURITY_REVIEW
+```
+
+By default only `true_positive` and `probable_true_positive` rows are exported. Use `--include-unproven` for exploratory uploads. See [GitHub SARIF documentation](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning).
 
 ## Final Human Checklist
 
