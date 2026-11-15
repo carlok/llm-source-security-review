@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install coverage
+        run: python3 -m pip install coverage
+
+      - name: Run tests with coverage
+        run: |
+          python3 -m coverage run -m unittest discover -s tests -v
+          python3 -m coverage report --fail-under=85
+
+      - name: Smoke test init script
+        run: |
+          python3 scripts/init_security_review.py /tmp/smoke-review
+          test -f /tmp/smoke-review/SECURITY_REVIEW/THREAT_MODEL.md
+
+      - name: Smoke test validate and SARIF export
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("/tmp/smoke-review/SECURITY_REVIEW")
+          finding = {
+              "id": "F-20251115-001",
+              "title": "Example",
+              "category": "sql_injection",
+              "status": "candidate",
+              "focus_area": "demo",
+              "locations": [{"file": "demo.py", "line": 1, "function": "main"}],
+              "entry_point": "CLI",
+              "trust_boundary": "arg to query",
+              "attacker_control": "argv",
+              "source_to_sink": "sys.argv -> string concat -> SQL execute",
+              "impact": "data read",
+              "preconditions": [],
+              "existing_mitigations_checked": [],
+              "poc_path": None,
+              "reproduction_steps": [],
+              "confidence": "low",
+              "confidence_score": 0.4,
+              "cwe_ids": ["CWE-89"],
+              "reasoning_summary": "Demo record for CI SARIF smoke test",
+          }
+          verified = {
+              "finding_id": "F-20251115-001",
+              "verdict": "unproven",
+              "exploitability": "not_shown",
+              "evidence": ["demo only"],
+              "disproof_attempts": ["n/a"],
+              "mitigations_found": [],
+              "poc_result": "not_run",
+              "reproduction_steps": [],
+              "notes": "CI fixture",
+              "confidence_score": 0.4,
+          }
+          root.joinpath("FINDINGS.jsonl").write_text(json.dumps(finding) + "\n")
+          root.joinpath("VERIFIED.jsonl").write_text(json.dumps(verified) + "\n")
+          PY
+          python3 scripts/validate_findings.py /tmp/smoke-review/SECURITY_REVIEW
+          python3 scripts/export_sarif.py /tmp/smoke-review/SECURITY_REVIEW --include-unproven
+          test -f /tmp/smoke-review/SECURITY_REVIEW/FINDINGS.sarif

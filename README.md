@@ -46,6 +46,25 @@ SECURITY_REVIEW/
 
 Start with threat modeling before discovery. Patch only verified findings, or probable true positives with explicit human approval.
 
+Validate JSONL output and export SARIF when integrating with GitHub code scanning:
+
+```bash
+python3 /path/to/llm-source-security-review/scripts/validate_findings.py SECURITY_REVIEW
+python3 /path/to/llm-source-security-review/scripts/export_sarif.py SECURITY_REVIEW
+```
+
+Standards mapping (CWE / OWASP / evidence bar): [`references/standards-grounding.md`](references/standards-grounding.md).
+
+## Development
+
+```bash
+python3 -m pip install coverage
+python3 -m coverage run -m unittest discover -s tests -v
+python3 -m coverage report
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENT.md`](AGENT.md).
+
 ## Safety
 
 Use this only for codebases you own or are explicitly authorized to test. Run proofs of concept only against local sandbox targets. Do not expose production credentials, host SSH keys, real `.env` files, cloud tokens, browser cookies, or deployment keys to agents.
